@@ -159,7 +159,7 @@ class Fp16GPUTrainerConfigs(GPUTrainerConfigs):
     )
 
 @dataclass
-class Fp64GPUTrainerConfigs(CPUTrainerConfigs):
+class Fp64CPUTrainerConfigs(CPUTrainerConfigs):
     name: str = field(default="cpu-fp64", metadata={"help": "Trainer name"})
     percision: int = field(
         default=64,
