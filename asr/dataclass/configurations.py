@@ -217,5 +217,34 @@ def generate_asr_configs_with_help():
     from asr.criterion import CRITERION_DATACLASS_REGISTRY
     from asr.data import AUDIO_FEATURE_TRANSFORM_DATACLASS_REGISTRY
     from asr.dataclass import (
-        AUG # pause here
+        AUGMENT_DATACLASS_REGISTRY,
+        DATASET_DATACLASS_REGISTRY,
+        ASR_TRAIN_CONFIGS,
+        TRAINER_DATACLASS_REGISTRY,
     )
+    from asr.models import MODEL_DATACLASS_REGISTRY
+    from asr.optim.scheduler import SCHEDULER_DATACLASS_REGISTRY
+    from asr.tokenizers import TOKENIZER_DATACLASS_REGISTRY
+
+    registries = {
+        "audio": AUDIO_FEATURE_TRANSFORM_DATACLASS_REGISTRY,
+        "augment": AUGMENT_DATACLASS_REGISTRY,
+        "trainer": TRAINER_DATACLASS_REGISTRY,
+        "model": MODEL_DATACLASS_REGISTRY,
+        "criterion": CRITERION_DATACLASS_REGISTRY,
+        "dataset": DATASET_DATACLASS_REGISTRY,
+        "lr_scheduler": SCHEDULER_DATACLASS_REGISTRY,
+        "tokenizer": TOKENIZER_DATACLASS_REGISTRY,
+    }
+
+    with open("Configuration.md", "w") as f:
+        for group in ASR_TRAIN_CONFIGS:
+            dataclass_registry = registries[group]
+
+            f.write(f"## `{group}`\n")
+
+            for k, v in dataclass_registry.items():
+                f.write(f"### `{k}`  \n")
+                v = v()
+                for kv in v.__dataclass_fields__:
+                    f.write(f"- `{kv}` : {v._get_help(kv)}\n")
