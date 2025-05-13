@@ -11,7 +11,7 @@ from asr.optim.scheduler.lr_scheduler import LearningRateScheduler
 
 
 @dataclass
-class WarmupLRScheduleConfigs(LearningRateScheduler):
+class WarmupLRScheduleConfigs(LearningRateSchedulerConfigs):
     scheduler_name: str = field(default="warmup", metadata={"help": "Name of learning rate scheduler."})
     peak_lr: float = field(default=1e-04, metadata={"help": "Maximum learning rate."})
     init_lr: float = field(default=1e-7, metadata={"help": "Initial learning rate."})

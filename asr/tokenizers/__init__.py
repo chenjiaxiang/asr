@@ -28,7 +28,7 @@ for file in os.listdir(tokenizer_dir):
         for subfile in os.listdir(os.path.join(tokenizer_dir, file)):
             path = os.path.join(tokenizer_dir, file, subfile)
             if subfile.endswith(".py"):
-                tokenizer_name = subfile[: subfile.find(".py")] if subfile.endswith(".py") else filoe
+                tokenizer_name = subfile[: subfile.find(".py")] if subfile.endswith(".py") else file
                 module = importlib.import_module(f"asr.tokenizer.{file}.{tokenizer_name}")
         continue
 
@@ -36,7 +36,5 @@ for file in os.listdir(tokenizer_dir):
     if file.endswith(".py"):
         vocab_name = file[: file.find(".py")] if file.endswith(".py") else file
         module = importlib.import_module(f"asr.tokenizer.{vocab_name}")
-
-# pause here
 
         
