@@ -8,6 +8,8 @@ import torch
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.callbacks import LearningRateMonitor
 
+from .callbacks import CheckpointEveryNSteps
+
 
 PYTORCH_IMPORT_ERROR = """
 asr requires the PyTorch library but it was not found in your environment. Checkout the instructions on the
@@ -52,7 +54,7 @@ installation page of its repo: https://github.com/parlance/ctcdecode and follow 
 
 try:
     import pytorch_lightning as pl
-    from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
+    from pytorch_lightning.loggers import LightningLoggerBase, TensorBoardLogger, WandbLogger # TODO import wrong
 
 def get_class_name(obj):
     return obj.__class__.__name__
@@ -147,5 +149,111 @@ def check_backends():
     if not all(BACKENDS_MAPPING[backend][0] for backend in backends):
         raise ImportError("".join([BACKENDS_MAPPING[backend][1] for backend in backends]))
 
-def get_pl_trainer()
-# pause here
+def get_pl_trainer(
+        configs: DictConfig, num_devices: int, logger: Union[LightningLoggerBase, Iterable[LightningLoggerBase], bool]
+) -> pl.Trainer:
+
+    amp_backend = None
+
+    if hasattr(configs.trainer, "amp_backend"):
+        amp_backend = "apex" if configs.trainer.amp_backend == "apex" and is_apex_available() else "native"
+
+    if configs.trainer.name == "cpu":
+        trainer = pl.Trainer(
+            accelerator=configs.trainer.accerlator,
+            accumulate_grad_batches=configs.trainer.accumulate_grad_batches,
+            check_val_every_n_epoch=configs.trainer.check_val_evary_n_epoch,
+            gradient_clip_val=configs.trainer.gradient_clip_val,
+            logger=logger,
+            auto_scale_batch_size=configs.trainer.auto_scale_batch_size, # TODO missing parameter.
+            max_epochs=configs.trainer.max_epochs,
+            callbacks=[
+                LearningRateMonitor(logging_interval="step"),
+                CheckpointEveryNSteps(configs.trainer.save_checkpoint_n_steps),
+            ]
+        )
+    if configs.trainer.name == "gpu":
+        trainer = pl.Trainer(
+            accelerator=configs.trainer.accerlator,
+            gpus=num_devices,    # TODO missing parameter.
+            accumulate_grad_batches=configs.trainer.accumulate_grad_batches,
+            auto_select_gpus=configs.trainer.auto_select_gpus, # TODO missing parameter.
+            check_val_every_n_epoch=configs.trainer.check_val_evary_n_epoch,
+            gradient_clip_val=configs.trainer.gradient_clip_val,
+            logger=logger,
+            auto_scale_batch_size=configs.trainer.auto_scale_batch_size, # TODO missing parameter.
+            max_epochs=configs.trainer.max_epochs,
+            callbacks=[
+                LearningRateMonitor(logging_interval="step"),
+                CheckpointEveryNSteps(configs.trainer.save_checkpoint_n_steps),
+            ]
+        )
+    if configs.trainer.name == "gpu-fp16":
+        trainer = pl.Trainer(
+            precision=configs.trainer.precision,
+            accelerator=configs.trainer.accerlator,
+            gpus=num_devices,    # TODO missing parameter.
+            accumulate_grad_batches=configs.trainer.accumulate_grad_batches,
+            amp_backend=amp_backend,
+            auto_select_gpus=configs.trainer.auto_select_gpus, # TODO missing parameter.
+            check_val_every_n_epoch=configs.trainer.check_val_evary_n_epoch,
+            gradient_clip_val=configs.trainer.gradient_clip_val,
+            logger=logger,
+            auto_scale_batch_size=configs.trainer.auto_scale_batch_size, # TODO missing parameter.
+            max_epochs=configs.trainer.max_epochs,
+            callbacks=[
+                LearningRateMonitor(logging_interval="step"),
+                CheckpointEveryNSteps(configs.trainer.save_checkpoint_n_steps),
+            ]
+        )
+    if configs.trainer.name == "cpu-fp64":
+        trainer = pl.Trainer(
+            precision=configs.trainer.precision,
+            accelerator=configs.trainer.accerlator,
+            accumulate_grad_batches=configs.trainer.accumulate_grad_batches,
+            amp_backend=amp_backend,
+            check_val_every_n_epoch=configs.trainer.check_val_evary_n_epoch,
+            gradient_clip_val=configs.trainer.gradient_clip_val,
+            logger=logger,
+            auto_scale_batch_size=configs.trainer.auto_scale_batch_size, # TODO missing parameter.
+            max_epochs=configs.trainer.max_epochs,
+            callbacks=[
+                LearningRateMonitor(logging_interval="step"),
+                CheckpointEveryNSteps(configs.trainer.save_checkpoint_n_steps),
+            ]
+        )
+    if configs.trainer.name == "cpu-resume":
+        trainer = pl.Trainer(
+            accelerator=configs.trainer.accerlator,
+            accumulate_grad_batches=configs.trainer.accumulate_grad_batches,
+            check_val_every_n_epoch=configs.trainer.check_val_evary_n_epoch,
+            gradient_clip_val=configs.trainer.gradient_clip_val,
+            logger=logger,
+            auto_scale_batch_size=configs.trainer.auto_scale_batch_size, # TODO missing parameter.
+            max_epochs=configs.trainer.max_epochs,
+            resume_from_checkpoint=configs.trainer.checkpoint_path, # TODO missing parameter.
+            callbacks=[
+                LearningRateMonitor(logging_interval="step"),
+                CheckpointEveryNSteps(configs.trainer.save_checkpoint_n_steps),
+            ]
+        )
+    if configs.trainer.name == "gpu-resume":
+        trainer = pl.Trainer(
+            accelerator=configs.trainer.accerlator,
+            gpus=num_devices,    # TODO missing parameter.
+            accumulate_grad_batches=configs.trainer.accumulate_grad_batches,
+            auto_select_gpus=configs.trainer.auto_select_gpus, # TODO missing parameter.
+            check_val_every_n_epoch=configs.trainer.check_val_evary_n_epoch,
+            gradient_clip_val=configs.trainer.gradient_clip_val,
+            logger=logger,
+            auto_scale_batch_size=configs.trainer.auto_scale_batch_size, # TODO missing parameter.
+            max_epochs=configs.trainer.max_epochs,
+            resume_from_checkpoint=configs.trainer.checkpoint_path, # TODO missing parameter.
+            callbacks=[
+                LearningRateMonitor(logging_interval="step"),
+                CheckpointEveryNSteps(configs.trainer.save_checkpoint_n_steps),
+            ]
+        )
+
+    else:
+        raise ValueError(f"supported trainer: {configs.trainer.name}")
