@@ -52,7 +52,8 @@ class LightningLibriSpeechDataModule(pl.LightningDataModule):
         return audio_paths, transcripts
 
     def _download_datasets(self) -> None:
-        base_url = "http://www.openslr.org/resource/12"
+        # base_url = "http://www.openslr.org/resource/12"
+        base_url = "http://openslr.magicdatatech.com/resource/12"
         train_dir = "LibriSpeech/train-960"
 
         if not os.path.exists(self.configs.dataset.dataset_path):
