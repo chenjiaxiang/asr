@@ -29,12 +29,12 @@ for file in os.listdir(tokenizer_dir):
             path = os.path.join(tokenizer_dir, file, subfile)
             if subfile.endswith(".py"):
                 tokenizer_name = subfile[: subfile.find(".py")] if subfile.endswith(".py") else file
-                module = importlib.import_module(f"asr.tokenizer.{file}.{tokenizer_name}")
+                module = importlib.import_module(f"asr.tokenizers.{file}.{tokenizer_name}")
         continue
 
     path = os.path.join(tokenizer_dir, file)   # TODO why?
     if file.endswith(".py"):
         vocab_name = file[: file.find(".py")] if file.endswith(".py") else file
-        module = importlib.import_module(f"asr.tokenizer.{vocab_name}")
+        module = importlib.import_module(f"asr.tokenizers.{vocab_name}")
 
         

@@ -1,9 +1,21 @@
+# import debugpy
+# try:
+#     # 5678 is the default attach port in the VS Code debug configurations. Unless a host and port are specified, host defaults to 127.0.0.1
+#     debugpy.listen(("localhost", 9501))
+#     print("Waiting for debugger attach")
+#     debugpy.wait_for_client()
+# except Exception as e:
+#     pass
 import os
 import hydra
 import sentencepiece
 import pytorch_lightning as pl
 from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.utilities import rank_zero_info
+
+import sys
+sys.path.append("/root/workspace/learn/asr/asr")
+# pause here TODO
 
 from asr.dataclass.initialize import hydra_train_init
 from asr.datasets import DATA_MODULE_REGISTRY
@@ -23,6 +35,15 @@ def hydra_main(configs: DictConfig) -> None:
     tokenizer = TOKENIZER_REGISTRY[configs.tokenizer.unit](configs)
     
     data_module.setup()
+
+    # """
+    # Debug start
+    # """
+    # for inputs, targets, input_lengths, target_length in data_module.val_dataloader():
+    #     print(targets)
+    # """
+    # Debug end
+    # """
 
     model = MODEL_REGISTRY[configs.model.model_name](configs=configs, tokenizer=tokenizer)
 

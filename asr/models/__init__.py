@@ -2,7 +2,7 @@ import importlib
 import os
 
 from .asr_model import ASRModel 
-from .asr_ctc_model import ASRCTCModel
+# from .asr_ctc_model import ASRCTCModel
 from .asr_encoder_decoder import ASREncoderDecoderModel
 
 MODEL_REGISTRY = dict()
@@ -47,7 +47,7 @@ from .conformer import (
 __all__ = [
     "ASRModel",
     "ASREncoderDecoderModel",
-    "ASRCTCModel",
+    # "ASRCTCModel",
     "ConformerConfigs",
     "ConformerLSTMConfigs",
     "ConformerLSTMModel",

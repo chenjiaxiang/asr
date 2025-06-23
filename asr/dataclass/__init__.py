@@ -13,7 +13,7 @@ from .configurations import (
 
 ASR_TRAIN_CONFIGS = [
     "audio",
-    "augmment",
+    "augment",
     "dataset",
     "model",
     "criterion",
@@ -23,7 +23,7 @@ ASR_TRAIN_CONFIGS = [
 ]
 
 DATASET_DATACLASS_REGISTRY = {
-    "libri": LibriSpeechConfigs,
+    "librispeech": LibriSpeechConfigs,
 }
 
 TRAINER_DATACLASS_REGISTRY = {

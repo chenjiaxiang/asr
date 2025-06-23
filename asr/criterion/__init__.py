@@ -11,7 +11,7 @@ def register_criterion(name: str, dataclass=None):
         
         CRITERION_REGISTRY[name] = cls
 
-        cls.___dataclass__ = dataclass
+        cls.__dataclass__ = dataclass
         if dataclass is not None:
             if name in CRITERION_DATACLASS_REGISTRY:
                 raise ValueError(f"Cannot register duplicate criterion ({name})")

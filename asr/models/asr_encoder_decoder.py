@@ -53,6 +53,7 @@ class ASREncoderDecoderModel(ASRModel):
             get_class_name(self.criterion) == "LabelSmoothedCrossEntropyLoss"
             or get_class_name(self.criterion) == "CrossEntropyLoss"
         ):
+            logits = logits.transpose(1, 2) # TODO debug, transpose logits from BxCxT to BxTxC
             loss = self.criterion(logits, targets[:, 1:])
             self.info({f"{stage}_loss": loss})
         else:
@@ -102,3 +103,68 @@ class ASREncoderDecoderModel(ASRModel):
             "encoder_logits": encoder_logits,
             "encoder_output_lengths": encoder_output_lengths,
         }
+
+    def training_step(self, batch: tuple, batch_idx: int):
+        inputs, targets, input_lengths, target_lengths = batch
+
+        encoder_outputs, encoder_logits, encoder_output_lengths = self.encoder(inputs, input_lengths)
+        if get_class_name(self.decoder) == "TransformerDecoder":
+            logits = self.decoder(
+                encoder_outputs = encoder_outputs,
+                targets = targets,
+                encoder_output_lengths = encoder_output_lengths,
+                target_lengths = target_lengths,
+                teacher_forcing_ratio = self.teacher_forcing_ratio,
+            )
+        else:
+            logits = self.decoder(
+                encoder_outputs = encoder_outputs,
+                targets = targets,
+                encoder_output_lengths = encoder_output_lengths,
+                teacher_forcing_ratio = self.teacher_forcing_ratio,
+            )
+
+        return self.collect_outputs(
+            stage="train",
+            logits=logits,
+            encoder_logits=encoder_logits,
+            encoder_output_lengths=encoder_output_lengths,
+            targets=targets,
+            target_lengths=target_lengths,
+        )
+
+    def validation_step(self, batch: tuple, batch_idx: int) -> OrderedDict:
+        inputs, targets, input_lengths, target_lengths = batch
+
+        encoder_outputs, encoder_logits, encoder_output_lengths = self.encoder(inputs, input_lengths)
+        logits = self.decoder(
+            encoder_outputs,
+            encoder_output_lengths = encoder_output_lengths,
+            teacher_forcing_ratio = 0.0,
+        )
+        return self.collect_outputs(
+            stage="val",
+            logits=logits,
+            encoder_logits=encoder_logits,
+            encoder_output_lengths=encoder_output_lengths,
+            targets=targets,
+            target_lengths=target_lengths,
+        )
+
+    def test_step(self, batch: tuple, batch_idx: int) -> OrderedDict:
+        inputs, targets, input_lengths, target_lengths = batch
+
+        encoder_outputs, encoder_logits, encoder_output_lengths = self.encoder(inputs, input_lengths)
+        logits = self.encoder(
+            encoder_outputs,
+            encoder_output_lengths = encoder_output_lengths,
+            teacher_forcing_ratio = 0.0,
+        )
+        return self.collect_outputs(
+            stage="test",
+            logits=logits,
+            encoder_logits=encoder_logits,
+            encoder_output_lengths=encoder_output_lengths,
+            targets=targets,
+            target_lengths=target_lengths,
+        )

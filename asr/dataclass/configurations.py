@@ -56,7 +56,7 @@ class AugmentConfigs(ASRDataclass):
         default=False, metadata={"help": "Flag indication whether to apply spec augment or not"}
     )
     apply_noise_augment: bool = field(
-        default=None,
+        default=False,
         metadata={
             "help": "Flag indication whether to apply noise augment or not "
             "Noise augment requires `noise_dataset_path`. "
@@ -140,7 +140,7 @@ class GPUTrainerConfigs(BaseTrainerConfigs):
     name: str = field(default="gpu", metadata={"help": "Trainer name"})
     device: str = field(default="gpu", metadata={"help": "Training device."})
     use_cuda: bool = field(default=True, metadata={"help": "If set True, will train with GPU"})
-    auto_select_gpus: int = field(
+    auto_select_gpus: bool = field(
         default=True, metadata={"help": "If enabled and gpus is an integer, pick available gpus automatically."}
     )
 
@@ -184,7 +184,7 @@ class TokenizerConfigs(ASRDataclass):
 
     sos_token: str = field(default="<sos>", metadata={"help": "Start of sentence token"})
     eos_token: str = field(default=MISSING, metadata={"help": "End of sentence token"})
-    pad_token: str = field(defaut="<pad>", metadata={"help": "Pad token"})
+    pad_token: str = field(default="<pad>", metadata={"help": "Pad token"})
     blank_token: str = field(default="<blank>", metadata={"help": "Blank token (for CTC training)"})
     encoding: str = field(default="utf-8", metadata={"help": "Encoding of vocab"})
 

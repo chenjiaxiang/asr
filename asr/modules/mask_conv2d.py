@@ -24,7 +24,7 @@ class MaskConv2d(nn.Module):
             seq_lengths = self._get_sequence_lengths(module, seq_lengths)
 
             for  idx, length in enumerate(seq_lengths):
-                lengths = lengths.item()
+                lengths = length.item()
 
                 if (mask[idx].size(2) - lengths) > 0:
                     mask[idx].narrow(dim=2, start=length, length=mask[idx].size(2) - length).fill_(1)

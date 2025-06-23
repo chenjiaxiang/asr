@@ -15,7 +15,7 @@ class Linear(nn.Module):
         return self.linear(x)
 
 class View(nn.Module):
-    def __int__(self, shape: Tuple, contiguous: bool = False) -> None:
+    def __init__(self, shape: Tuple, contiguous: bool = False) -> None:
         super(View, self).__init__()
         self.shape = shape
         self.contiguous = contiguous

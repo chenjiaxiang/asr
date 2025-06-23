@@ -8,5 +8,5 @@ from .models import ConformerLSTMModel
 __all__ = [
     "ConformerLSTMConfigs",
     "ConformerConfigs",
-    "ConformerLSRTModel"
+    "ConformerLSTMModel"
 ]

@@ -126,7 +126,7 @@ class LSTMAttentionDecoder(ASRDecoder):
             targets = targets[targets != self.eos_id].view(batch_size, -1)
 
             if self.attn_mechanism == "loc" or self.attn_mechanism == "additive":
-                for di in range(targets.size[1]):
+                for di in range(targets.size(1)):
                     input_var = targets[:, di].unsqueeze(1)
                     step_outputs, hidden_states, attn = self.forward_step(
                         input_var=input_var,

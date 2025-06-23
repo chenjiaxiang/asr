@@ -1,3 +1,6 @@
 scripts/
 *sh
 data/
+*/__pycache__
+**/__pycache__
+outputs/

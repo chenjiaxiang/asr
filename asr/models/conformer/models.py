@@ -12,7 +12,7 @@ from asr.models.conformer.configurations import (
 )
 from asr.tokenizers.tokenizer import Tokenizer
 
-@register_model("conformer_lstm", datacalss=ConformerLSTMConfigs)
+@register_model("conformer_lstm", dataclass=ConformerLSTMConfigs)
 class ConformerLSTMModel(ASREncoderDecoderModel):
     def __init__(self, configs: DictConfig, tokenizer: Tokenizer) -> None:
         super(ConformerLSTMModel, self).__init__(configs, tokenizer)

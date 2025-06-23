@@ -69,9 +69,9 @@ class ASRModel(pl.LightningModule):
             self.parameters(),
             lr=self.configs.lr_scheduler.lr
         )
-        scheduler = SCHEDULER_REGISTRY[self.configs.lr_scheduler.scheduler_name](self.optimizer, self.congis)
+        scheduler = SCHEDULER_REGISTRY[self.configs.lr_scheduler.scheduler_name](self.optimizer, self.configs)
 
-        if self.configs.lr_scheduler.scheduler == "reducr_lr_on_plateau":
+        if self.configs.lr_scheduler.scheduler_name == "reducr_lr_on_plateau":
             lr_scheduler = {
                 "scheduler": scheduler,
                 "monitor": "val_loss",
@@ -88,6 +88,9 @@ class ASRModel(pl.LightningModule):
                 "scheduler": scheduler,
                 "interval": "step",
             }
+
+        return [self.optimizer], [lr_scheduler]
+
     def configure_criterion(self, criterion_name: str) -> nn.Module:
         if criterion_name in ("joint_ctc_cross_entropy", "label_smoothed_cross_entropy"):
             return CRITERION_REGISTRY[criterion_name](
@@ -100,3 +103,11 @@ class ASRModel(pl.LightningModule):
                 configs=self.configs,
                 tokenizer=self.tokenizer,
             )
+
+    def get_lr(self) -> float:
+        for g in self.optimizer.param_groups:
+            return g["lr"]
+
+    def set_lr(self, lr: float) -> None:
+        for g in self.optimizer.param_groups:
+            g["lr"] = lr

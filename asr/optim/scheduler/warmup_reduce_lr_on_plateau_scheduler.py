@@ -36,6 +36,7 @@ class WarmupReduceLROnPlateauScheduler(LearningRateScheduler):
             optimizer: Optimizer,
             configs: DictConfig,
     ) -> None:
+        super(WarmupReduceLROnPlateauScheduler, self).__init__(optimizer, configs.lr_scheduler.lr)
         self.warmup_steps = configs.lr_scheduler.warmup_steps
         self.update_steps = 0
         self.warmup_rate = (

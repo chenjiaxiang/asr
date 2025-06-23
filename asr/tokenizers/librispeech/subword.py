@@ -21,7 +21,7 @@ class LibriSpeechSubwordTokenizerConfigs(TokenizerConfigs):
 @register_tokenizer("libri_subword", dataclass=LibriSpeechSubwordTokenizerConfigs)
 class LibriSpeechSubwordTokenizer(Tokenizer):
     def __init__(self, configs: DictConfig):
-        super(LibriSpeechSubwordTokenizer, self).__init()
+        super(LibriSpeechSubwordTokenizer, self).__init__()
         try:
             import sentencepiece as spm
         except ImportError:

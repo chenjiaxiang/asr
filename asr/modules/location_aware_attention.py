@@ -17,7 +17,7 @@ class LocationAwareAttention(nn.Module):
         self.fc = Linear(attn_dim, 1, bias=True)
         self.smoothing = smoothing
 
-    def forawrd(
+    def forward(
             self,
             query: Tensor,
             value: Tensor,

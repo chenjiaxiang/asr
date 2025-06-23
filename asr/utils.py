@@ -55,6 +55,8 @@ installation page of its repo: https://github.com/parlance/ctcdecode and follow 
 try:
     import pytorch_lightning as pl
     from pytorch_lightning.loggers import LightningLoggerBase, TensorBoardLogger, WandbLogger # TODO import wrong
+except ImportError:
+    raise ValueError(PYTORCH_LIGHTNING_IMPORT_ERROR)
 
 def get_class_name(obj):
     return obj.__class__.__name__
@@ -172,13 +174,13 @@ def get_pl_trainer(
                 CheckpointEveryNSteps(configs.trainer.save_checkpoint_n_steps),
             ]
         )
-    if configs.trainer.name == "gpu":
+    elif configs.trainer.name == "gpu":
         trainer = pl.Trainer(
-            accelerator=configs.trainer.accerlator,
+            accelerator=configs.trainer.accelerator,
             gpus=num_devices,    # TODO missing parameter.
             accumulate_grad_batches=configs.trainer.accumulate_grad_batches,
             auto_select_gpus=configs.trainer.auto_select_gpus, # TODO missing parameter.
-            check_val_every_n_epoch=configs.trainer.check_val_evary_n_epoch,
+            check_val_every_n_epoch=configs.trainer.check_val_every_n_epoch,
             gradient_clip_val=configs.trainer.gradient_clip_val,
             logger=logger,
             auto_scale_batch_size=configs.trainer.auto_scale_batch_size, # TODO missing parameter.
@@ -188,7 +190,7 @@ def get_pl_trainer(
                 CheckpointEveryNSteps(configs.trainer.save_checkpoint_n_steps),
             ]
         )
-    if configs.trainer.name == "gpu-fp16":
+    elif configs.trainer.name == "gpu-fp16":
         trainer = pl.Trainer(
             precision=configs.trainer.precision,
             accelerator=configs.trainer.accerlator,
@@ -206,7 +208,7 @@ def get_pl_trainer(
                 CheckpointEveryNSteps(configs.trainer.save_checkpoint_n_steps),
             ]
         )
-    if configs.trainer.name == "cpu-fp64":
+    elif configs.trainer.name == "cpu-fp64":
         trainer = pl.Trainer(
             precision=configs.trainer.precision,
             accelerator=configs.trainer.accerlator,
@@ -222,7 +224,7 @@ def get_pl_trainer(
                 CheckpointEveryNSteps(configs.trainer.save_checkpoint_n_steps),
             ]
         )
-    if configs.trainer.name == "cpu-resume":
+    elif configs.trainer.name == "cpu-resume":
         trainer = pl.Trainer(
             accelerator=configs.trainer.accerlator,
             accumulate_grad_batches=configs.trainer.accumulate_grad_batches,
@@ -237,7 +239,7 @@ def get_pl_trainer(
                 CheckpointEveryNSteps(configs.trainer.save_checkpoint_n_steps),
             ]
         )
-    if configs.trainer.name == "gpu-resume":
+    elif configs.trainer.name == "gpu-resume":
         trainer = pl.Trainer(
             accelerator=configs.trainer.accerlator,
             gpus=num_devices,    # TODO missing parameter.
@@ -257,3 +259,5 @@ def get_pl_trainer(
 
     else:
         raise ValueError(f"supported trainer: {configs.trainer.name}")
+
+    return trainer
