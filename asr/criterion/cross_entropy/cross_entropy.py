@@ -26,7 +26,7 @@ class CrossEntropyLoss(nn.Module):
         if max_logits_length > max_target_length:
             logits = logits[:, :max_target_length, :]
         elif max_target_length > max_logits_length:
-            targets = targets[:, :max_logits_length, :]
+            targets = targets[:, :max_logits_length]
 
         logits = logits.contiguous().view(-1, logits.size(-1))
 
