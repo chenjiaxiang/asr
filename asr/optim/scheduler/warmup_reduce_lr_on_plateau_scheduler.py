@@ -49,7 +49,7 @@ class WarmupReduceLROnPlateauScheduler(LearningRateScheduler):
                 optimizer,
                 configs,
             ),
-            ReduceLROnPlateauConfigs(
+            WarmupReduceLROnPlateauScheduler(
                 optimizer,
                 configs,
             ),
