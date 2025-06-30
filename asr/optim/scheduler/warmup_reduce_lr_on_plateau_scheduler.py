@@ -7,7 +7,7 @@ from torch.optim import Optimizer
 from asr.dataclass.configurations import LearningRateSchedulerConfigs
 from asr.optim.scheduler import register_scheduler
 from asr.optim.scheduler.lr_scheduler import LearningRateScheduler
-from asr.optim.scheduler.reduce_lr_on_plateau_scheduler import ReduceLROnPlateauConfigs
+from asr.optim.scheduler.reduce_lr_on_plateau_scheduler import ReduceLROnPlateauScheduler
 from asr.optim.scheduler.warmup_scheduler import WarmupLRScheduler
 
 
@@ -49,7 +49,7 @@ class WarmupReduceLROnPlateauScheduler(LearningRateScheduler):
                 optimizer,
                 configs,
             ),
-            WarmupReduceLROnPlateauScheduler(
+            ReduceLROnPlateauScheduler(
                 optimizer,
                 configs,
             ),
