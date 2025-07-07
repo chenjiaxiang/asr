@@ -41,8 +41,8 @@ class WarmupLRScheduler(LearningRateScheduler):
     def step(self, val_loss: Optional[torch.FloatTensor] = None) -> float:
         if self.update_step  < self.warmup_steps:
             lr = self.init_lr + self.warmup_rate * self.update_step
+            self.set_lr(self.optimizer, lr)
             self.lr = lr
-            self.set_lr(self.optimizer, self.lr)
         self.update_step += 1
 
         return self.lr
