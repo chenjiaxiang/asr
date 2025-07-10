@@ -10,7 +10,7 @@ class PositionalEncoding(nn.Module):
             d_model: int = 512,
             max_len: int = 5000
         ) -> None:
-        super(PositionEncoding, self).__init__()
+        super(PositionalEncoding, self).__init__()
         pe = torch.zeros(max_len, d_model, requires_grad=False)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
         div_term = torch.exp(torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model))
