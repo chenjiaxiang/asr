@@ -1,1 +1,2 @@
 from .beam_search_rnn_transducer import BeamSearchRNNTransducer
+from .beam_search_transformer_transducer import BeamSearchTransformerTransducer

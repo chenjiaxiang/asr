@@ -6,7 +6,7 @@ from asr.decoders import TransformerTransducerDecoder
 from asr.encoders import TransformerTransducerEncoder
 from asr.models import ASRTransducerModel, register_model
 from asr.models.transformer_transducer.configurations import TransformerTransducerConfig
-from asr.search import BeamSearchTransformerTransducer # TODO
+from asr.search import BeamSearchTransformerTransducer
 from asr.tokenizers.tokenizer import Tokenizer
 
 @register_model("tranformer_transducer", dataclass=TransformerTransducerConfig)
