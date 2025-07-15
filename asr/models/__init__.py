@@ -4,6 +4,7 @@ import os
 from .asr_model import ASRModel 
 # from .asr_ctc_model import ASRCTCModel
 from .asr_encoder_decoder import ASREncoderDecoderModel
+from .asr_transducer_model import ASRTransducerModel
 
 MODEL_REGISTRY = dict()
 MODEL_DATACLASS_REGISTRY = dict()
@@ -51,5 +52,6 @@ __all__ = [
     "ConformerConfigs",
     "ConformerLSTMConfigs",
     "ConformerLSTMModel",
+    "ASRTransducerModel",
 ]
     

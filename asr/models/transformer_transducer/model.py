@@ -6,7 +6,7 @@ from asr.decoders import TransformerTransducerDecoder
 from asr.encoders import TransformerTransducerEncoder
 from asr.models import ASRTransducerModel, register_model
 from asr.models.transformer_transducer.configurations import TransformerTransducerConfig
-from asr.search import BeamSearchTransformerTransducer
+from asr.search import BeamSearchTransformerTransducer # TODO
 from asr.tokenizers.tokenizer import Tokenizer
 
 @register_model("tranformer_transducer", dataclass=TransformerTransducerConfig)
@@ -14,7 +14,7 @@ class TransformerTranducerModel(ASRTransducerModel):
     def __init__(self, configs: DictConfig, tokenizer: Tokenizer) -> None:
         super(TransformerTranducerModel, self).__init__(configs, tokenizer)
 
-        self.encoder = TransformerTranducerModel(
+        self.encoder = TransformerTransducerEncoder(
             input_size=self.configs.audio.num_mels,
             model_dim=self.configs.model.encoder_dim,
             d_ff=self.configs.model.d_ff,
@@ -23,7 +23,7 @@ class TransformerTranducerModel(ASRTransducerModel):
             dropout=self.configs.model.audio_dropout_p,
             max_positional_length=self.configs.model.max_positional_length,
         )
-        self.decoder = TransformerTranducerModel(
+        self.decoder = TransformerTransducerDecoder(
             num_classes=self.num_classes,
             model_dim=self.configs.model.d_ff,
             num_layers=self.configs.model.num_label_layers,
