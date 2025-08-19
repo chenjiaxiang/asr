@@ -26,7 +26,7 @@ class LSTMAttentionDecoder(ASRDecoder):
     def __init__(
             self,
             num_classes: int,
-            max_lengths: int = 150,
+            max_length: int = 150,
             hidden_state_dim: int = 1024,
             pad_id: int = 0,
             sos_id: int = 1,
@@ -42,7 +42,7 @@ class LSTMAttentionDecoder(ASRDecoder):
         self.num_classes = num_classes
         self.num_heads = num_heads
         self.num_layers = num_layers
-        self.max_length = max_lengths
+        self.max_length = max_length
         self.eos_id = eos_id
         self.sos_id = pad_id   
         self.pad_id = pad_id

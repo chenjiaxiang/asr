@@ -1,2 +1,4 @@
+from .beam_search_lstm import BeamSearchLSTM
+from .beam_search_ctc import BeamSearchCTC
 from .beam_search_rnn_transducer import BeamSearchRNNTransducer
 from .beam_search_transformer_transducer import BeamSearchTransformerTransducer
