@@ -17,6 +17,48 @@ from asr.modules import (
 
 
 class LSTMAttentionDecoder(ASRDecoder):
+    r"""LSTM-based attention decoder for seq-to-seq ASR.
+
+    Auto-regressively generates output tokens by attending over encoder
+    outputs with one of several supported attention mechanisms. Supports
+    teacher forcing during training.
+
+    Args:
+        num_classes (int): Number of output token classes.
+        max_length (int): Maximum decoding steps during inference. Default: ``150``.
+        hidden_state_dim (int): LSTM hidden state dimensionality. Default: ``1024``.
+        pad_id (int): Padding token index. Default: ``0``.
+        sos_id (int): Start-of-sequence token index. Default: ``1``.
+        eos_id (int): End-of-sequence token index. Default: ``2``.
+        attn_mechanism (str): Attention type; one of ``"loc"``, ``"multi-head"``,
+            ``"additive"``, ``"dot"``, ``"scaled-dot"``. Default: ``"multi-head"``.
+        num_heads (int): Number of attention heads (for multi-head attention).
+            Default: ``4``.
+        num_layers (int): Number of LSTM layers. Default: ``2``.
+        rnn_type (str): RNN cell type; one of ``"lstm"``, ``"gru"``, ``"rnn"``.
+            Default: ``"lstm"``.
+        dropout_p (float): Dropout probability. Default: ``0.3``.
+
+    Inputs: encoder_outputs, targets, encoder_output_lengths, teacher_forcing_ratio
+        - **encoder_outputs** (batch, time, hidden_state_dim): Encoder hidden states.
+        - **targets** (batch, target_len): Target token indices (optional).
+        - **encoder_output_lengths** (batch,): Encoder output lengths (optional).
+        - **teacher_forcing_ratio** (float): Probability of using teacher forcing.
+          Default: ``1.0``.
+
+    Returns: logits
+        - **logits** (batch, num_classes, target_len): Log-probability distribution
+          over token classes at each time step.
+
+    Examples::
+
+        >>> decoder = LSTMAttentionDecoder(num_classes=100, hidden_state_dim=512)
+        >>> enc_out = torch.randn(2, 20, 512)
+        >>> targets = torch.randint(0, 100, (2, 10))
+        >>> logits = decoder(enc_out, targets)
+        >>> logits.shape
+        torch.Size([2, 100, 9])
+    """
     supported_rnns = {
         "lstm": nn.LSTM,
         "gru": nn.GRU,
@@ -44,10 +86,10 @@ class LSTMAttentionDecoder(ASRDecoder):
         self.num_layers = num_layers
         self.max_length = max_length
         self.eos_id = eos_id
-        self.sos_id = pad_id   
+        self.sos_id = sos_id
         self.pad_id = pad_id
         self.attn_mechanism = attn_mechanism.lower()
-        self.emebedding = nn.Embedding(num_classes, hidden_state_dim)
+        self.embedding = nn.Embedding(num_classes, hidden_state_dim)
         self.input_dropout = nn.Dropout(dropout_p)
         rnn_cell = self.supported_rnns[rnn_type.lower()]
         self.rnn = rnn_cell(
@@ -88,8 +130,8 @@ class LSTMAttentionDecoder(ASRDecoder):
             attn: Optional[Tensor] = None,
     ) -> Tuple[Tensor, Tensor, Tensor]:
         batch_size, output_lengths = input_var.size(0), input_var.size(1)
-        
-        embedded = self.emebedding(input_var)
+
+        embedded = self.embedding(input_var)
         embedded = self.input_dropout(embedded)
 
         if self.training:
@@ -101,7 +143,7 @@ class LSTMAttentionDecoder(ASRDecoder):
             context, attn = self.attention(outputs, encoder_outputs, attn)
         else:
             context, attn = self.attention(outputs, encoder_outputs, encoder_outputs)
-        
+
         outputs = torch.cat((outputs, context), dim=2)
 
         step_outputs = self.fc(outputs.view(-1, self.hidden_state_dim << 1)).log_softmax(dim=-1)
@@ -168,7 +210,7 @@ class LSTMAttentionDecoder(ASRDecoder):
     def validate_args(
             self,
             targets: Optional[Any] = None,
-            encoder_outputs: Tensor = None,
+            encoder_outputs: Optional[Tensor] = None,
             teacher_forcing_ratio: float = 1.0,
     ) -> Tuple[Tensor, int, int]:
         assert encoder_outputs is not None

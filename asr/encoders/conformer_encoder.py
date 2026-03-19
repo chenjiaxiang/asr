@@ -9,6 +9,52 @@ from asr.modules import ConformerBlock, Conv2dSubSampling, Linear, Transpose
 
 
 class ConformerEncoder(ASREncoder):
+    r"""Conformer encoder for ASR.
+
+    Combines a 2D convolutional sub-sampling front-end with a stack of
+    Conformer blocks (each containing feed-forward, self-attention,
+    convolution, and feed-forward sub-modules). Optionally produces CTC
+    logits via a final fully-connected layer when ``joint_ctc_attention=True``.
+
+    Reference:
+        "Conformer: Convolution-augmented Transformer for Speech Recognition"
+        - Gulati et al.
+        https://arxiv.org/abs/2005.08100
+
+    Args:
+        num_classes (int): Number of output token classes.
+        input_dim (int): Number of input frequency bins. Default: ``80``.
+        encoder_dim (int): Model dimensionality. Default: ``512``.
+        num_layers (int): Number of Conformer blocks. Default: ``17``.
+        num_attention_heads (int): Number of self-attention heads. Default: ``8``.
+        feed_forward_expansion_factor (int): Feed-forward expansion ratio. Default: ``4``.
+        conv_expansion_factor (int): Convolution expansion factor. Default: ``2``.
+        input_dropout_p (float): Dropout after input projection. Default: ``0.1``.
+        feed_forward_dropout_p (float): Dropout in feed-forward modules. Default: ``0.1``.
+        attention_dropout_p (float): Dropout in attention modules. Default: ``0.1``.
+        conv_dropout_p (float): Dropout in convolution modules. Default: ``0.1``.
+        conv_kernel_size (int): Kernel size for depthwise convolution. Default: ``31``.
+        half_step_residual (bool): Scale feed-forward residuals by 0.5. Default: ``True``.
+        joint_ctc_attention (bool): If ``True``, produce CTC logits. Default: ``True``.
+
+    Inputs: inputs, input_lengths
+        - **inputs** (batch, time, input_dim): Input feature tensor.
+        - **input_lengths** (batch,): Length of each input sequence.
+
+    Returns: outputs, encoder_logits, output_lengths
+        - **outputs** (batch, time', encoder_dim): Encoder hidden states.
+        - **encoder_logits** (batch, num_classes, time') or ``None``: CTC logits.
+        - **output_lengths** (batch,): Lengths after sub-sampling.
+
+    Examples::
+
+        >>> encoder = ConformerEncoder(num_classes=100, input_dim=80)
+        >>> x = torch.randn(2, 100, 80)
+        >>> lengths = torch.tensor([100, 80])
+        >>> out, logits, out_len = encoder(x, lengths)
+        >>> out.shape
+        torch.Size([2, 24, 512])
+    """
     def __init__(
             self,
             num_classes: int,
@@ -60,7 +106,7 @@ class ConformerEncoder(ASREncoder):
             self,
             inputs: Tensor,
             input_lengths: Tensor,
-        ) -> Tuple[Tensor, Tensor, Tensor]:
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         encoder_logits = None
 
         outputs, output_lengths = self.conv_subsample(inputs, input_lengths)

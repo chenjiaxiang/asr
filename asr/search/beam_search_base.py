@@ -4,7 +4,25 @@ import torch
 import torch.nn as nn
 from torch import Tensor
 
+
 class ASRBeamSearchBase(nn.Module):
+    r"""Abstract base class for beam search decoding in ASR.
+
+    Provides common beam search utilities including hypothesis inflation,
+    successor selection, hypothesis collection, and sequence padding.
+    Subclasses must implement :meth:`forward`.
+
+    Args:
+        decoder: A decoder module that provides ``sos_id``, ``eos_id``,
+            ``pad_id``, and ``forward_step``.
+        beam_size (int): Number of beams to maintain during search.
+
+    Examples::
+
+        >>> class MyBeamSearch(ASRBeamSearchBase):
+        ...     def forward(self, encoder_outputs, encoder_output_lengths):
+        ...         pass
+    """
     def __init__(self, decoder, beam_size: int) -> None:
         super(ASRBeamSearchBase, self).__init__()
         self.decoder = decoder
@@ -61,7 +79,7 @@ class ASRBeamSearchBase(nn.Module):
 
         return eos_count
 
-    def _get_hypothesis(self):
+    def _get_hypothesis(self) -> Tensor:
         predictions = list()
 
         for batch_idx, batch in enumerate(self.finished):
@@ -96,10 +114,10 @@ class ASRBeamSearchBase(nn.Module):
         matched = torch.zeros((batch_size, max_length), dtype=torch.long)
 
         for batch_idx, y_hat in enumerate(y_hats):
-            matched[batch_idx, : len(y_hat)] = y_hat
-            matched[batch_idx, len(y_hat) :] = int(self.pad_id)
+            matched[batch_idx, :len(y_hat)] = y_hat
+            matched[batch_idx, len(y_hat):] = int(self.pad_id)
 
         return matched
-    
-    def forward(self, *args, **kwargs):
+
+    def forward(self, *args, **kwargs) -> None:
         raise NotImplementedError

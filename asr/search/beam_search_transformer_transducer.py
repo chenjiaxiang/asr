@@ -1,4 +1,5 @@
 from typing import Callable
+
 import torch
 from torch import Tensor
 
@@ -7,6 +8,38 @@ from asr.search.beam_search_base import ASRBeamSearchBase
 
 
 class BeamSearchTransformerTransducer(ASRBeamSearchBase):
+    r"""Beam search decoder for Transformer Transducer models.
+
+    Implements time-synchronous beam search for the Transformer Transducer
+    architecture. The transformer prediction network is queried at each
+    encoder timestep and scored via the joint network; blank predictions
+    advance the time step while non-blank predictions extend hypotheses.
+
+    Args:
+        joint (Callable): Joint network function that combines encoder and
+            decoder outputs to produce log-probabilities.
+        decoder (TransformerTransducerDecoder): Transformer prediction network.
+        beam_size (int): Number of beams to maintain. Default: ``3``.
+        expand_beam (float): Beam expansion threshold. Default: ``2.3``.
+        state_beam (float): State beam threshold. Default: ``4.6``.
+        blank_id (int): Index of the blank token. Default: ``3``.
+
+    Inputs: encoder_outputs, max_length
+        - **encoder_outputs** (batch, time, dim): Encoder hidden states.
+        - **max_length** (int): Maximum number of encoder timesteps to process.
+
+    Returns: predictions
+        - **predictions** (batch, max_length): Most likely token sequences.
+
+    Examples::
+
+        >>> decoder = TransformerTransducerDecoder(num_classes=100, model_dim=512)
+        >>> beam_search = BeamSearchTransformerTransducer(
+        ...     joint=model.joint, decoder=decoder, beam_size=3
+        ... )
+        >>> enc_out = torch.randn(2, 50, 512)
+        >>> predictions = beam_search(enc_out, max_length=50)
+    """
     def __init__(
             self,
             joint: Callable,
@@ -22,8 +55,8 @@ class BeamSearchTransformerTransducer(ASRBeamSearchBase):
         self.expand_beam = expand_beam
         self.state_beam = state_beam
         self.blank_id = blank_id
-    
-    def forward(self, encoder_outputs: Tensor, max_length: int):
+
+    def forward(self, encoder_outputs: Tensor, max_length: int) -> Tensor:
         hypothesis = list()
         hypothesis_score = list()
 
@@ -95,5 +128,5 @@ class BeamSearchTransformerTransducer(ASRBeamSearchBase):
 
             hypothesis.append(torch.LongTensor(ongoing_beams["prediction"][1:]))
             hypothesis_score.append(ongoing_beams["logp_score"] / len(ongoing_beams["prediction"]))
-        
+
         return self._fill_sequence(hypothesis)

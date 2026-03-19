@@ -1,11 +1,38 @@
 from typing import Tuple
+
 import torch
 from torch import Tensor
 
 from asr.decoders import LSTMAttentionDecoder
 from asr.search.beam_search_base import ASRBeamSearchBase
 
+
 class BeamSearchLSTM(ASRBeamSearchBase):
+    r"""Beam search decoder for LSTM attention-based sequence-to-sequence models.
+
+    Wraps an :class:`~asr.decoders.LSTMAttentionDecoder` and performs beam
+    search to find the most likely output sequence given encoder outputs.
+
+    Args:
+        decoder (LSTMAttentionDecoder): The LSTM attention decoder to use for
+            generating step-level log-probabilities.
+        beam_size (int): Number of beams to maintain during search.
+
+    Inputs: encoder_outputs, encoder_output_lengths
+        - **encoder_outputs** (batch, time, hidden_state_dim): Encoder hidden states.
+        - **encoder_output_lengths** (batch,): Length of each encoder output sequence.
+
+    Returns: predictions
+        - **predictions** (batch, max_length): Most likely token sequences.
+
+    Examples::
+
+        >>> decoder = LSTMAttentionDecoder(num_classes=100, hidden_state_dim=512)
+        >>> beam_search = BeamSearchLSTM(decoder=decoder, beam_size=3)
+        >>> enc_out = torch.randn(2, 20, 512)
+        >>> lengths = torch.tensor([20, 15])
+        >>> predictions = beam_search(enc_out, lengths)
+    """
     def __init__(self, decoder: LSTMAttentionDecoder, beam_size: int):
         super(BeamSearchLSTM, self).__init__(decoder, beam_size)
         self.hidden_state_dim = decoder.hidden_state_dim
@@ -40,7 +67,7 @@ class BeamSearchLSTM(ASRBeamSearchBase):
 
         if attn is not None:
             attn = self._inflate(attn, self.beam_size, dim=0)
-        
+
         if isinstance(hidden_states, Tuple):
             hidden_states = tuple([self._inflate(h, self.beam_size, 1) for h in hidden_states])
         else:
@@ -49,7 +76,7 @@ class BeamSearchLSTM(ASRBeamSearchBase):
         for di in range(max_length, -1):
             if self._is_all_finished(self.beam_size):
                 break
-        
+
             if isinstance(hidden_states, tuple):
                 tuple(
                     h.view(self.num_layers, batch_size * self.beam_size, self.hidden_state_dim) for h in hidden_states
@@ -57,7 +84,7 @@ class BeamSearchLSTM(ASRBeamSearchBase):
             else:
                 hidden_states = hidden_states.view(self.num_layers, batch_size * self.beam_size, self.hidden_state_dim)
             step_outputs, hidden_states, attn = self.forward_step(input_var, hidden_states, encoder_outputs, attn)
-            
+
             step_outputs = step_outputs.view(batch_size, self.beam_size, -1)
             current_ps, current_vs = step_outputs.topk(self.beam_size)
 
@@ -108,4 +135,3 @@ class BeamSearchLSTM(ASRBeamSearchBase):
             input_var = input_var.view(batch_size,* self.beam_size, -1)
 
         return self._get_hypothesis()
-

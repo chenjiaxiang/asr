@@ -2,6 +2,7 @@ from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
+from torch import Tensor
 
 from asr.lm.asr_lm import ASRLanguageModelBase
 from asr.modules import (
@@ -14,7 +15,35 @@ from asr.modules import (
     get_attn_subsequent_mask,
 )
 
+
 class TransformerForLanguageModelLayer(nn.Module):
+    r"""Single transformer layer for the language model.
+
+    Applies pre-layer normalization, multi-head self-attention with a
+    residual connection, then pre-layer normalization and a feed-forward
+    network with a residual connection.
+
+    Args:
+        d_model (int): Model dimensionality. Default: ``768``.
+        num_attention_heads (int): Number of attention heads. Default: ``8``.
+        d_ff (int): Feed-forward inner dimensionality. Default: ``2048``.
+        dropout_p (float): Dropout probability. Default: ``0.3``.
+
+    Inputs: inputs, mask
+        - **inputs** (batch, time, d_model): Input tensor.
+        - **mask** (batch, time, time): Optional boolean attention mask.
+
+    Returns: outputs
+        - **outputs** (batch, time, d_model): Layer output tensor.
+
+    Examples::
+
+        >>> layer = TransformerForLanguageModelLayer(d_model=768)
+        >>> x = torch.randn(2, 10, 768)
+        >>> out = layer(x)
+        >>> out.shape
+        torch.Size([2, 10, 768])
+    """
     def __init__(
             self,
             d_model: int = 768,
@@ -30,9 +59,9 @@ class TransformerForLanguageModelLayer(nn.Module):
 
     def forward(
             self,
-            inputs: torch.Tensor,
-            mask: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+            inputs: Tensor,
+            mask: Optional[Tensor] = None,
+    ) -> Tensor:
         residual = inputs
         inputs = self.attention_prenorm(inputs)
         outputs, _ = self.attention(inputs, inputs, inputs, mask)
@@ -47,6 +76,40 @@ class TransformerForLanguageModelLayer(nn.Module):
 
 
 class TransformerForLanguageModel(ASRLanguageModelBase):
+    r"""Transformer-based language model for ASR rescoring or shallow fusion.
+
+    Encodes token sequences with sinusoidal positional encoding and a stack
+    of causal (masked) transformer layers. Produces log-probability
+    distributions over the vocabulary at each position.
+
+    Args:
+        num_classes (int): Vocabulary size.
+        max_length (int): Maximum sequence length. Default: ``128``.
+        d_model (int): Model dimensionality. Default: ``768``.
+        num_attention_heads (int): Number of attention heads. Default: ``8``.
+        d_ff (int): Feed-forward inner dimensionality. Default: ``1536``.
+        pad_id (int): Padding token index. Default: ``0``.
+        sos_id (int): Start-of-sequence token index. Default: ``1``.
+        eos_id (int): End-of-sequence token index. Default: ``2``.
+        num_layers (int): Number of transformer layers. Default: ``2``.
+        dropout_p (float): Dropout probability. Default: ``0.3``.
+
+    Inputs: inputs, input_lengths
+        - **inputs** (batch, time): Token index tensor.
+        - **input_lengths** (batch,): Sequence lengths.
+
+    Returns: logits
+        - **logits** (batch, time, num_classes): Log-probability distributions.
+
+    Examples::
+
+        >>> lm = TransformerForLanguageModel(num_classes=100)
+        >>> x = torch.randint(0, 100, (2, 20))
+        >>> lengths = torch.tensor([20, 15])
+        >>> out = lm(x, lengths)
+        >>> out.shape
+        torch.Size([2, 20, 100])
+    """
     def __init__(
         self,
         num_classes: int,
@@ -88,7 +151,7 @@ class TransformerForLanguageModel(ASRLanguageModelBase):
             Linear(d_model, num_classes, bias=False),
         )
 
-    def forward_step(self, inputs: torch.Tensor, input_lengths: torch.Tensor) -> torch.Tensor:
+    def forward_step(self, inputs: Tensor, input_lengths: Tensor) -> Tensor:
         pad_mask = get_attn_pad_mask(inputs, input_lengths, inputs.size(1))
         subsequent_mask = get_attn_subsequent_mask(inputs)
         mask = torch.gt((pad_mask + subsequent_mask), 0)
@@ -103,7 +166,7 @@ class TransformerForLanguageModel(ASRLanguageModelBase):
 
         return step_outputs
 
-    def forward(self, inputs: torch.Tensor, input_lengths: torch.Tensor) -> torch.Tensor:
+    def forward(self, inputs: Tensor, input_lengths: Tensor) -> Tensor:
         logits = list()
 
         step_outputs = self.forward_step(inputs, input_lengths)

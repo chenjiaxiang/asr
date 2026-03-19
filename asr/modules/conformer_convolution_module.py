@@ -7,7 +7,42 @@ from asr.modules.pointwise_conv1d import PointWiseConv1d
 from asr.modules.swish import Swish
 from asr.modules.wrapper import Transpose
 
+
 class ConformerConvModule(nn.Module):
+    r"""Convolution module used in Conformer encoder blocks.
+
+    Applies layer normalization followed by a pointwise convolution, a GLU,
+    a depthwise convolution, batch normalization, a Swish activation, another
+    pointwise convolution, and dropout. Input is transposed for 1D convolution
+    and transposed back.
+
+    Reference:
+        "Conformer: Convolution-augmented Transformer for Speech Recognition"
+        - Gulati et al.
+        https://arxiv.org/abs/2005.08100
+
+    Args:
+        in_channels (int): Number of input (and output) feature channels.
+        kernel_size (int): Kernel size of the depthwise convolution. Must be odd.
+            Default: ``31``.
+        expansion_factor (int): Expansion factor for the pointwise convolution.
+            Currently only ``2`` is supported. Default: ``2``.
+        dropout_p (float): Dropout probability. Default: ``0.1``.
+
+    Inputs: inputs
+        - **inputs** (batch, time, in_channels): Input tensor.
+
+    Returns: output
+        - **output** (batch, time, in_channels): Output tensor.
+
+    Examples::
+
+        >>> conv = ConformerConvModule(in_channels=512, kernel_size=31)
+        >>> x = torch.randn(2, 10, 512)
+        >>> out = conv(x)
+        >>> out.shape
+        torch.Size([2, 10, 512])
+    """
     def __init__(
             self,
             in_channels: int,

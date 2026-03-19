@@ -3,9 +3,26 @@ from torch import Tensor
 
 import Levenshtein as Lev
 
+from asr.tokenizers.tokenizer import Tokenizer
+
 
 class ErrorRate(object):
-    def __init__(self, tokenizer) -> None:
+    r"""Base class for computing sequence-level error rates.
+
+    Accumulates distances and reference lengths across calls, and returns the
+    running error rate. Subclasses must implement :meth:`metric`.
+
+    Args:
+        tokenizer (Tokenizer): Tokenizer used to decode integer label sequences
+            to strings for edit-distance computation.
+
+    Examples::
+
+        >>> class MyErrorRate(ErrorRate):
+        ...     def metric(self, s1, s2):
+        ...         return Lev.distance(s1, s2), len(s1)
+    """
+    def __init__(self, tokenizer: Tokenizer) -> None:
         self.total_dist = 0.0
         self.total_length = 0.0
         self.tokenizer = tokenizer
@@ -34,9 +51,24 @@ class ErrorRate(object):
     def metric(self, *args, **kwargs) -> Tuple[float, int]:
         raise NotImplementedError
 
-    
+
 class CharacterErrorRate(ErrorRate):
-    def __init__(self, tokenizer):
+    r"""Character Error Rate (CER) metric.
+
+    Computes the edit distance between hypothesis and reference strings at the
+    character level (ignoring spaces and underscores).
+
+    Args:
+        tokenizer (Tokenizer): Tokenizer used to decode label sequences to strings.
+
+    Examples::
+
+        >>> cer = CharacterErrorRate(tokenizer)
+        >>> targets = torch.randint(0, 100, (2, 10))
+        >>> predictions = torch.randint(0, 100, (2, 10))
+        >>> rate = cer(targets, predictions)
+    """
+    def __init__(self, tokenizer: Tokenizer) -> None:
         super(CharacterErrorRate, self).__init__(tokenizer)
 
     def metric(self, s1: str, s2: str) -> Tuple[float, int]:
@@ -54,9 +86,24 @@ class CharacterErrorRate(ErrorRate):
 
         return dist, length
 
-    
+
 class WordErrorRate(ErrorRate):
-    def __init__(self, tokenizer):
+    r"""Word Error Rate (WER) metric.
+
+    Computes the edit distance between hypothesis and reference strings at the
+    word level using the Levenshtein algorithm on word-to-character mappings.
+
+    Args:
+        tokenizer (Tokenizer): Tokenizer used to decode label sequences to strings.
+
+    Examples::
+
+        >>> wer = WordErrorRate(tokenizer)
+        >>> targets = torch.randint(0, 100, (2, 10))
+        >>> predictions = torch.randint(0, 100, (2, 10))
+        >>> rate = wer(targets, predictions)
+    """
+    def __init__(self, tokenizer: Tokenizer) -> None:
         super(WordErrorRate, self).__init__(tokenizer)
 
     def metric(self, s1: str, s2: str) -> Tuple[float, int]:

@@ -8,7 +8,45 @@ from torch import Tensor
 
 from asr.modules.wrapper import Linear
 
+
 class RelativeMultiHeadAttention(nn.Module):
+    r"""Multi-head attention with relative positional encodings (Transformer-XL style).
+
+    Extends standard multi-head attention by incorporating relative positional
+    encodings via learnable bias terms ``u`` and ``v``. This allows the model to
+    better capture positional relationships in long sequences.
+
+    Reference:
+        "Transformer-XL: Attentive Language Models Beyond a Fixed-Length Context"
+        - Dai et al.
+        https://arxiv.org/abs/1901.02860
+
+    Args:
+        dim (int): Total model dimensionality. Must be divisible by ``num_heads``.
+            Default: ``512``.
+        num_heads (int): Number of parallel attention heads. Default: ``16``.
+        dropout_p (float): Dropout probability applied to attention weights.
+            Default: ``0.1``.
+
+    Inputs: query, key, value, pos_embedding, mask
+        - **query** (batch, time, dim): Query tensor.
+        - **key** (batch, time, dim): Key tensor.
+        - **value** (batch, time, dim): Value tensor.
+        - **pos_embedding** (batch, 2*time-1, dim): Relative positional encoding.
+        - **mask** (batch, time, time): Optional boolean mask.
+
+    Returns: output
+        - **output** (batch, time, dim): Attention output projected back to ``dim``.
+
+    Examples::
+
+        >>> attn = RelativeMultiHeadAttention(dim=512, num_heads=8)
+        >>> x = torch.randn(2, 10, 512)
+        >>> pos = torch.randn(2, 19, 512)
+        >>> out = attn(x, x, x, pos)
+        >>> out.shape
+        torch.Size([2, 10, 512])
+    """
     def __init__(
             self,
             dim: int = 512,
@@ -29,7 +67,7 @@ class RelativeMultiHeadAttention(nn.Module):
         self.pos_proj = Linear(dim, dim, bias=False)
 
         self.dropout = nn.Dropout(p=dropout_p)
-        self.u_bias=  nn.Parameter(torch.Tensor(self.num_heads, self.d_head))
+        self.u_bias = nn.Parameter(torch.Tensor(self.num_heads, self.d_head))
         self.v_bias = nn.Parameter(torch.Tensor(self.num_heads, self.d_head))
         torch.nn.init.xavier_normal_(self.u_bias)
         torch.nn.init.xavier_normal_(self.v_bias)
@@ -50,7 +88,7 @@ class RelativeMultiHeadAttention(nn.Module):
         key = self.key_proj(key).view(batch_size, -1, self.num_heads, self.d_head).permute(0, 2, 1, 3)
         value = self.value_proj(value).view(batch_size, -1, self.num_heads, self.d_head).permute(0, 2, 1, 3)
         pos_embedding = self.pos_proj(pos_embedding).view(batch_size, -1, self.num_heads, self.d_head)
-        
+
         content_score = torch.matmul((query + self.u_bias).transpose(1, 2), key.transpose(2, 3))
         pos_score = torch.matmul((query + self.v_bias).transpose(1, 2), pos_embedding.permute(0, 2, 3, 1))
         pos_score = self._relative_shift(pos_score)
@@ -60,7 +98,7 @@ class RelativeMultiHeadAttention(nn.Module):
         if mask is not None:
             mask = mask.unsqueeze(1)
             score.masked_fill_(mask, -1e4)
-        
+
         attn = F.softmax(score, -1)
         attn = self.dropout(attn)
 
@@ -70,11 +108,11 @@ class RelativeMultiHeadAttention(nn.Module):
         return self.out_proj(context)
 
     def _relative_shift(self, pos_score: Tensor) -> Tensor:
-        batch_size, num_heads, seq_length1, seq_lenght2 = pos_score.size()
+        batch_size, num_heads, seq_length1, seq_length2 = pos_score.size()
         zeros = pos_score.new_zeros(batch_size, num_heads, seq_length1, 1)
         padded_pos_score = torch.cat([zeros, pos_score], dim=-1)
 
-        padded_pos_score = padded_pos_score.view(batch_size, num_heads, seq_lenght2 + 1, seq_length1)
-        pos_score = padded_pos_score[:, :, 1:].view_as(pos_score)[:, :, :, :seq_lenght2 // 2 + 1]
+        padded_pos_score = padded_pos_score.view(batch_size, num_heads, seq_length2 + 1, seq_length1)
+        pos_score = padded_pos_score[:, :, 1:].view_as(pos_score)[:, :, :, :seq_length2 // 2 + 1]
 
         return pos_score

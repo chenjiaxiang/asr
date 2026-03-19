@@ -24,6 +24,27 @@ class TransformerLRSchedulerConfigs(LearningRateSchedulerConfigs):
 
 @register_scheduler("transformer", dataclass=TransformerLRSchedulerConfigs)
 class TransformerLRScheduler(LearningRateScheduler):
+    r"""Transformer-style learning rate scheduler with warmup and exponential decay.
+
+    Linearly warms up the learning rate from ``0`` to ``peak_lr`` over
+    ``warmup_steps`` steps, then exponentially decays to ``final_lr`` over
+    ``decay_steps`` steps, and holds ``final_lr`` thereafter.
+
+    Args:
+        optimizer (Optimizer): Wrapped optimizer whose learning rate is managed.
+        configs (DictConfig): Configuration object containing
+            ``configs.lr_scheduler.peak_lr``, ``configs.lr_scheduler.final_lr``,
+            ``configs.lr_scheduler.final_lr_scale``, ``configs.lr_scheduler.warmup_steps``,
+            and ``configs.lr_scheduler.decay_steps``.
+
+    Examples::
+
+        >>> scheduler = TransformerLRScheduler(optimizer, configs)
+        >>> for step in range(total_steps):
+        ...     loss.backward()
+        ...     optimizer.step()
+        ...     scheduler.step()
+    """
     def __init__(
             self,
             optimizer: Optimizer,

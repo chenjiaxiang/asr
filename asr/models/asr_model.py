@@ -13,7 +13,27 @@ from asr.optim import AdamP, Novograd, RAdam
 from asr.optim.scheduler import SCHEDULER_REGISTRY
 from asr.tokenizers.tokenizer import Tokenizer
 
+
 class ASRModel(pl.LightningModule):
+    r"""Abstract base class for ASR models using PyTorch Lightning.
+
+    Provides shared infrastructure including optimizer/criterion configuration,
+    logging utilities, and abstract method stubs for training, validation, and
+    test steps. Subclasses implement the encoder/decoder architecture and the
+    step methods.
+
+    Args:
+        configs (DictConfig): Hydra/OmegaConf configuration object.
+        tokenizer (Tokenizer): Tokenizer used to map token IDs to text.
+
+    Examples::
+
+        >>> class MyASRModel(ASRModel):
+        ...     def forward(self, inputs, input_lengths):
+        ...         pass
+        ...     def training_step(self, batch, batch_idx):
+        ...         pass
+    """
     def __init__(self, configs: DictConfig, tokenizer: Tokenizer) -> None:
         super(ASRModel, self).__init__()
         self.configs = configs
@@ -26,8 +46,8 @@ class ASRModel(pl.LightningModule):
             self.gradient_clip_val = configs.trainer.gradient_clip_val
         if hasattr(configs, "criterion"):
             self.criterion = self.configure_criterion(configs.criterion.criterion_name)
-    
-    def set_beam_decoder(self, beam_size: int = 3):
+
+    def set_beam_decoder(self, beam_size: int = 3) -> None:
         raise NotImplementedError
 
     def info(self, dictionary: dict) -> None:

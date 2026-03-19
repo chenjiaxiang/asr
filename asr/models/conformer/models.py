@@ -12,8 +12,34 @@ from asr.models.conformer.configurations import (
 )
 from asr.tokenizers.tokenizer import Tokenizer
 
+
 @register_model("conformer_lstm", dataclass=ConformerLSTMConfigs)
 class ConformerLSTMModel(ASREncoderDecoderModel):
+    r"""Conformer encoder + LSTM attention decoder ASR model.
+
+    Combines a Conformer encoder (which uses convolution-augmented
+    self-attention) with an LSTM attention decoder to form a complete
+    end-to-end ASR model. Trained with a cross-entropy or joint
+    CTC/cross-entropy loss.
+
+    Reference:
+        "Conformer: Convolution-augmented Transformer for Speech Recognition"
+        - Gulati et al.
+        https://arxiv.org/abs/2005.08100
+
+    Args:
+        configs (DictConfig): Hydra/OmegaConf configuration object containing
+            model, audio, and tokenizer hyperparameters.
+        tokenizer (Tokenizer): Tokenizer instance used for vocabulary size and
+            special token IDs.
+
+    Examples::
+
+        >>> model = ConformerLSTMModel(configs, tokenizer)
+        >>> x = torch.randn(2, 100, 80)
+        >>> lengths = torch.tensor([100, 80])
+        >>> out = model(x, lengths)
+    """
     def __init__(self, configs: DictConfig, tokenizer: Tokenizer) -> None:
         super(ConformerLSTMModel, self).__init__(configs, tokenizer)
 
@@ -35,7 +61,7 @@ class ConformerLSTMModel(ASREncoderDecoderModel):
         )
         self.decoder = LSTMAttentionDecoder(
             num_classes=self.num_classes,
-            max_lengths=self.configs.model.max_length,
+            max_length=self.configs.model.max_length,
             hidden_state_dim=self.configs.model.encoder_dim,
             pad_id=self.tokenizer.pad_id,
             sos_id=self.tokenizer.sos_id,
@@ -47,7 +73,7 @@ class ConformerLSTMModel(ASREncoderDecoderModel):
             rnn_type=self.configs.model.rnn_type,
         )
 
-    def set_beam_decoder(self, beam_size: int = 3):
+    def set_beam_decoder(self, beam_size: int = 3) -> None:
         from asr.search import BeamSearchLSTM
 
         self.decoder = BeamSearchLSTM(

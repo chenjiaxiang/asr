@@ -7,7 +7,36 @@ from torch import Tensor
 from asr.encoders import ASREncoder
 from asr.modules import MultiHeadAttention, PositionalEncoding, PositionwiseFeedForward, get_attn_pad_mask
 
+
 class TransformerTransducerEncoderLayer(nn.Module):
+    r"""Single layer of the Transformer Transducer encoder.
+
+    Applies pre-layer normalization, multi-head self-attention with a
+    residual connection, another pre-layer normalization, and a
+    position-wise feed-forward network with dropout and a residual connection.
+
+    Args:
+        model_dim (int): Model dimensionality. Default: ``512``.
+        d_ff (int): Inner dimension of the feed-forward network. Default: ``2048``.
+        num_heads (int): Number of attention heads. Default: ``8``.
+        dropout (float): Dropout probability. Default: ``0.1``.
+
+    Inputs: inputs, self_attn_mask
+        - **inputs** (batch, time, model_dim): Input tensor.
+        - **self_attn_mask** (batch, time, time): Optional boolean attention mask.
+
+    Returns: output, attn_distribution
+        - **output** (batch, time, model_dim): Layer output.
+        - **attn_distribution** (batch, heads, time, time): Attention weights.
+
+    Examples::
+
+        >>> layer = TransformerTransducerEncoderLayer(model_dim=512, num_heads=8)
+        >>> x = torch.randn(2, 10, 512)
+        >>> out, attn = layer(x)
+        >>> out.shape
+        torch.Size([2, 10, 512])
+    """
     def __init__(
             self,
             model_dim: int = 512,
@@ -34,8 +63,43 @@ class TransformerTransducerEncoderLayer(nn.Module):
         ff_output = self.feed_forward(self_attn_output)
         output = self.encoder_dropout(ff_output + self_attn_output)
 
+        return output, attn_distribution
+
 
 class TransformerTransducerEncoder(ASREncoder):
+    r"""Transformer Transducer encoder.
+
+    Encodes input features using sinusoidal positional encoding and a stack
+    of transformer encoder layers (with pre-layer normalization). Designed for
+    use with the RNN-T / Transformer Transducer objective.
+
+    Args:
+        input_size (int): Number of input frequency bins. Default: ``80``.
+        model_dim (int): Model dimensionality. Default: ``512``.
+        d_ff (int): Inner feed-forward dimension. Default: ``2048``.
+        num_layers (int): Number of transformer encoder layers. Default: ``18``.
+        num_heads (int): Number of self-attention heads. Default: ``8``.
+        dropout (float): Dropout probability. Default: ``0.1``.
+        max_positional_lengths (int): Maximum sequence length for positional
+            encoding. Default: ``5000``.
+
+    Inputs: inputs, input_lengths
+        - **inputs** (batch, time, input_size): Input feature tensor.
+        - **input_lengths** (batch,): Actual sequence lengths.
+
+    Returns: outputs, input_lengths
+        - **outputs** (batch, time, model_dim): Encoder hidden states.
+        - **input_lengths** (batch,): Passed through unchanged.
+
+    Examples::
+
+        >>> encoder = TransformerTransducerEncoder(input_size=80, model_dim=512)
+        >>> x = torch.randn(2, 100, 80)
+        >>> lengths = torch.tensor([100, 80])
+        >>> out, lens = encoder(x, lengths)
+        >>> out.shape
+        torch.Size([2, 100, 512])
+    """
     def __init__(
             self,
             input_size: int = 80,
@@ -65,7 +129,7 @@ class TransformerTransducerEncoder(ASREncoder):
             input_lengths: Tensor,
     ) -> Tuple[Tensor, Tensor]:
         seq_len = inputs.size(1)
-        
+
         self_attn_mask = get_attn_pad_mask(inputs, input_lengths, seq_len)
 
         inputs = self.input_fc(inputs) + self.positional_encoding(seq_len)
@@ -73,5 +137,5 @@ class TransformerTransducerEncoder(ASREncoder):
 
         for encoder_layer in self.encoder_layers:
             outputs, _ = encoder_layer(outputs, self_attn_mask)
-        
+
         return outputs, input_lengths

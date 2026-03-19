@@ -10,6 +10,27 @@ from asr.utils import get_class_name
 
 
 class Conv2dExtractor(nn.Module):
+    r"""Abstract base class for 2D convolutional feature extractors.
+
+    Provides shared utilities for computing output lengths and output
+    dimensions after a sequence of convolutional (and optional pooling)
+    operations. Subclasses must define ``self.conv`` as an ``nn.Sequential``
+    (or compatible callable).
+
+    Args:
+        input_dim (int): Number of input frequency bins (e.g. mel filterbanks).
+        activation (str): Name of the activation function to use. Must be one of
+            ``"hardtanh"``, ``"relu"``, ``"elu"``, ``"leaky_relu"``, ``"gelu"``,
+            ``"swish"``. Default: ``"hardtanh"``.
+
+    Inputs: inputs, input_lengths
+        - **inputs** (batch, time, input_dim): Input feature tensor.
+        - **input_lengths** (batch,): Length of each sequence.
+
+    Returns: outputs, output_lengths
+        - **outputs** (batch, time', channels * freq): Extracted features.
+        - **output_lengths** (batch,): Lengths after convolution.
+    """
     supported_activations = {
         "hardtanh": nn.Hardtanh(0, 20, inplace=True),
         "relu": nn.ReLU(inplace=True),
@@ -25,7 +46,7 @@ class Conv2dExtractor(nn.Module):
         self.activation = Conv2dExtractor.supported_activations[activation]
         self.conv = None
 
-    def get_output_lengths(self, seq_lengths: Tensor) -> int:
+    def get_output_lengths(self, seq_lengths: Tensor) -> Tensor:
         assert self.conv is not None, "self.conv should be defined"
 
         for module in self.conv:
@@ -36,18 +57,18 @@ class Conv2dExtractor(nn.Module):
 
             elif isinstance(module, nn.MaxPool2d):
                 seq_lengths >>= 1
-        
+
         return seq_lengths.int()
 
     def get_output_dim(self) -> int:
-        if get_class_name(self)  == "VGGExtractor":
-            output_dim = (self.input_dim -1) << 5 if self.input_dim % 2 else self.input_dim << 5
-        
+        if get_class_name(self) == "VGGExtractor":
+            output_dim = (self.input_dim - 1) << 5 if self.input_dim % 2 else self.input_dim << 5
+
         elif get_class_name(self) == "DeepSpeed2Extractor":
-            output_dim = int(math.floor(self.input_dim + 2 * 20 -  41) / 2 + 1)
+            output_dim = int(math.floor(self.input_dim + 2 * 20 - 41) / 2 + 1)
             output_dim = int(math.floor(output_dim + 2 * 10 - 21) / 2 + 1)
             output_dim << 5
-        
+
         elif get_class_name(self) == "Conv2dSubSampling":
             factor = ((self.input_dim - 1) // 2 - 1) // 2
             output_dim = self.out_channels * factor

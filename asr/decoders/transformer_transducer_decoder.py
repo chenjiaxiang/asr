@@ -9,7 +9,45 @@ from asr.decoders import ASRDecoder
 from asr.encoders.transformer_transducer_encoder import TransformerTransducerEncoderLayer
 from asr.modules import PositionalEncoding, get_attn_pad_mask, get_attn_subsequent_mask
 
+
 class TransformerTransducerDecoder(ASRDecoder):
+    r"""Transformer Transducer prediction network.
+
+    Encodes a sequence of predicted tokens using a stack of transformer
+    encoder-style layers (with positional encoding) and produces hidden
+    states for use in the joint network of the Transformer Transducer model.
+
+    Args:
+        num_classes (int): Number of token classes (vocabulary size).
+        model_dim (int): Model dimensionality. Default: ``512``.
+        d_ff (int): Feed-forward inner dimensionality. Default: ``2048``.
+        num_layers (int): Number of transformer decoder layers. Default: ``2``.
+        num_heads (int): Number of self-attention heads. Default: ``8``.
+        dropout (float): Dropout probability. Default: ``0.1``.
+        max_positional_length (int): Maximum sequence length for positional
+            encoding. Default: ``5000``.
+        pad_id (int): Padding token index. Default: ``0``.
+        sos_id (int): Start-of-sequence token index. Default: ``1``.
+        eos_id (int): End-of-sequence token index. Default: ``2``.
+
+    Inputs: inputs, input_lengths
+        - **inputs** (batch, target_len) or (batch,): Token index tensor.
+          A 1D input is unsqueezed to add a time dimension.
+        - **input_lengths** (batch,): Sequence lengths.
+
+    Returns: outputs, input_lengths
+        - **outputs** (batch, target_len, model_dim): Decoder hidden states.
+        - **input_lengths** (batch,): Passed through unchanged.
+
+    Examples::
+
+        >>> decoder = TransformerTransducerDecoder(num_classes=100, model_dim=512)
+        >>> x = torch.randint(0, 100, (2, 5))
+        >>> lengths = torch.tensor([5, 4])
+        >>> out, lens = decoder(x, lengths)
+        >>> out.shape
+        torch.Size([2, 5, 512])
+    """
     def __init__(
             self,
             num_classes: int,
@@ -39,10 +77,10 @@ class TransformerTransducerDecoder(ASRDecoder):
             self,
             inputs: Tensor,
             input_lengths: Tensor
-        ) -> Tuple[Tensor, Tensor]:
-        batch = input.size(0)
+    ) -> Tuple[Tensor, Tensor]:
+        batch = inputs.size(0)
 
-        if len(input.size()) == 1: # validate, evaluation
+        if len(inputs.size()) == 1:  # validate, evaluation
             inputs = inputs.unsqueeze(1)
             target_lengths = inputs.size(1)
 
@@ -52,8 +90,8 @@ class TransformerTransducerDecoder(ASRDecoder):
                 positional_encoding_length=target_lengths,
             )
 
-        else: # train
-            target_lengths = input.size(1)
+        else:  # train
+            target_lengths = inputs.size(1)
 
             outputs = self.forward_step(
                 decoder_inputs=inputs,

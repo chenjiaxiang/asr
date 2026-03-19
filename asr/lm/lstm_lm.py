@@ -3,12 +3,46 @@ from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
+from torch import Tensor
 
 from asr.lm.asr_lm import ASRLanguageModelBase
 from asr.modules import Linear, View
 
 
 class LSTMForLanguageModel(ASRLanguageModelBase):
+    r"""LSTM-based language model for ASR rescoring or shallow fusion.
+
+    Auto-regressively generates token distributions from a multi-layer LSTM.
+    Supports teacher forcing during training and greedy generation at inference.
+
+    Args:
+        num_classes (int): Vocabulary size (number of token classes).
+        max_length (int): Maximum generation length at inference. Default: ``128``.
+        hidden_state_dim (int): LSTM hidden state dimensionality. Default: ``768``.
+        pad_id (int): Padding token index. Default: ``0``.
+        sos_id (int): Start-of-sequence token index. Default: ``1``.
+        eos_id (int): End-of-sequence token index. Default: ``2``.
+        num_layers (int): Number of LSTM layers. Default: ``2``.
+        rnn_type (str): RNN cell type; one of ``"lstm"``, ``"gru"``, ``"rnn"``.
+            Default: ``"lstm"``.
+        dropout_p (float): Dropout probability. Default: ``0.3``.
+
+    Inputs: inputs, teacher_forcing_ratio
+        - **inputs** (batch, time): Token index tensor.
+        - **teacher_forcing_ratio** (float): Probability of using teacher forcing.
+          Default: ``1.0``.
+
+    Returns: logits
+        - **logits** (batch, time, num_classes): Log-probability distributions.
+
+    Examples::
+
+        >>> lm = LSTMForLanguageModel(num_classes=100)
+        >>> x = torch.randint(0, 100, (2, 20))
+        >>> out = lm(x)
+        >>> out.shape
+        torch.Size([2, 19, 100])
+    """
     supported_rnns = {
         "lstm": nn.LSTM,
         "gru": nn.GRU,
@@ -57,9 +91,9 @@ class LSTMForLanguageModel(ASRLanguageModelBase):
 
     def forward_step(
             self,
-            input_var: torch.Tensor,
-            hidden_states: Optional[torch.Tensor],
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+            input_var: Tensor,
+            hidden_states: Optional[Tensor],
+    ) -> Tuple[Tensor, Tensor]:
         batch_size, output_lengths = input_var.size(0), input_var.size(1)
 
         embedded = self.embedding(input_var)
@@ -77,9 +111,9 @@ class LSTMForLanguageModel(ASRLanguageModelBase):
 
     def forward(
             self,
-            inputs: torch.Tensor,
+            inputs: Tensor,
             teacher_forcing_ratio: float = 1.0,
-    ) -> torch.Tensor:
+    ) -> Tensor:
         batch_size = inputs.size(0)
         logits, hidden_states = list(), None
         use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
@@ -91,18 +125,14 @@ class LSTMForLanguageModel(ASRLanguageModelBase):
             for di in range(step_outputs.size(1)):
                 step_output = step_outputs[:, di, :]
                 logits.append(step_output)
-            
+
         else:
-            input_var = input[:, 0].unsqueeze(1)
+            input_var = inputs[:, 0].unsqueeze(1)
             for di in range(self.max_length):
                 step_output, hidden = self.forward_step(input_var=input_var, hidden_states=hidden_states)
 
                 step_output = step_output.squeeze(1)
                 logits.append(step_output)
                 input_var = logits[-1].topk(1)[1]
-        
+
         return torch.stack(logits, dim=1)
-
-
-
-

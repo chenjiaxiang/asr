@@ -10,6 +10,26 @@ from asr.utils import get_class_name
 
 
 class ASREncoderDecoderModel(ASRModel):
+    r"""Base class for encoder-decoder ASR models.
+
+    Combines an encoder (e.g. ConformerEncoder, LSTMEncoder) with an
+    attention-based decoder (e.g. LSTMAttentionDecoder, TransformerDecoder).
+    Provides a shared ``collect_outputs`` method that computes the loss
+    (CTC, cross-entropy, or joint), logs metrics, and returns an
+    ``OrderedDict`` of results.
+
+    Args:
+        configs (DictConfig): Hydra/OmegaConf configuration object.
+        tokenizer (Tokenizer): Tokenizer instance.
+
+    Examples::
+
+        >>> class MyModel(ASREncoderDecoderModel):
+        ...     def __init__(self, configs, tokenizer):
+        ...         super().__init__(configs, tokenizer)
+        ...         self.encoder = MyEncoder(...)
+        ...         self.decoder = MyDecoder(...)
+    """
     def __init__(
             self,
             configs: DictConfig,
@@ -20,7 +40,7 @@ class ASREncoderDecoderModel(ASRModel):
         self.encoder = None
         self.decoder = None
 
-    def set_beam_decoder(self, beam_size = 3):
+    def set_beam_decoder(self, beam_size: int = 3) -> None:
         raise NotImplementedError
 
     def collect_outputs(
@@ -53,7 +73,7 @@ class ASREncoderDecoderModel(ASRModel):
             get_class_name(self.criterion) == "LabelSmoothedCrossEntropyLoss"
             or get_class_name(self.criterion) == "CrossEntropyLoss"
         ):
-            logits = logits.transpose(1, 2) # TODO debug, transpose logits from BxCxT to BxTxC
+            logits = logits.transpose(1, 2)  # TODO debug, transpose logits from BxCxT to BxTxC
             loss = self.criterion(logits, targets[:, 1:])
             self.info({f"{stage}_loss": loss})
         else:
@@ -110,18 +130,18 @@ class ASREncoderDecoderModel(ASRModel):
         encoder_outputs, encoder_logits, encoder_output_lengths = self.encoder(inputs, input_lengths)
         if get_class_name(self.decoder) == "TransformerDecoder":
             logits = self.decoder(
-                encoder_outputs = encoder_outputs,
-                targets = targets,
-                encoder_output_lengths = encoder_output_lengths,
-                target_lengths = target_lengths,
-                teacher_forcing_ratio = self.teacher_forcing_ratio,
+                encoder_outputs=encoder_outputs,
+                targets=targets,
+                encoder_output_lengths=encoder_output_lengths,
+                target_lengths=target_lengths,
+                teacher_forcing_ratio=self.teacher_forcing_ratio,
             )
         else:
             logits = self.decoder(
-                encoder_outputs = encoder_outputs,
-                targets = targets,
-                encoder_output_lengths = encoder_output_lengths,
-                teacher_forcing_ratio = self.teacher_forcing_ratio,
+                encoder_outputs=encoder_outputs,
+                targets=targets,
+                encoder_output_lengths=encoder_output_lengths,
+                teacher_forcing_ratio=self.teacher_forcing_ratio,
             )
 
         return self.collect_outputs(
@@ -139,8 +159,8 @@ class ASREncoderDecoderModel(ASRModel):
         encoder_outputs, encoder_logits, encoder_output_lengths = self.encoder(inputs, input_lengths)
         logits = self.decoder(
             encoder_outputs,
-            encoder_output_lengths = encoder_output_lengths,
-            teacher_forcing_ratio = 0.0,
+            encoder_output_lengths=encoder_output_lengths,
+            teacher_forcing_ratio=0.0,
         )
         return self.collect_outputs(
             stage="val",
@@ -157,8 +177,8 @@ class ASREncoderDecoderModel(ASRModel):
         encoder_outputs, encoder_logits, encoder_output_lengths = self.encoder(inputs, input_lengths)
         logits = self.decoder(
             encoder_outputs,
-            encoder_output_lengths = encoder_output_lengths,
-            teacher_forcing_ratio = 0.0,
+            encoder_output_lengths=encoder_output_lengths,
+            teacher_forcing_ratio=0.0,
         )
         return self.collect_outputs(
             stage="test",

@@ -6,7 +6,38 @@ from torch import Tensor
 
 from asr.modules.depthwise_conv2d import DepthWiseConv2d
 
+
 class MaskConv2d(nn.Module):
+    r"""2D convolutional sequence with masking for variable-length inputs.
+
+    Wraps an ``nn.Sequential`` of 2D convolutional (and optional pooling)
+    layers and ensures that padded positions are zeroed out after each layer.
+    Sequence lengths are updated at each layer to reflect the output length
+    after striding.
+
+    Args:
+        sequential (nn.Sequential): A sequential container of ``nn.Conv2d``,
+            ``DepthWiseConv2d``, and/or ``nn.MaxPool2d`` modules (interleaved
+            with activation functions).
+
+    Inputs: inputs, seq_lengths
+        - **inputs** (batch, channels, freq, time): Input feature tensor.
+        - **seq_lengths** (batch,): Actual time lengths of each sequence.
+
+    Returns: output, seq_lengths
+        - **output** (batch, channels, freq', time'): Masked output tensor.
+        - **seq_lengths** (batch,): Updated time lengths after all layers.
+
+    Examples::
+
+        >>> conv = MaskConv2d(nn.Sequential(
+        ...     nn.Conv2d(1, 32, kernel_size=3, stride=2),
+        ...     nn.ReLU(),
+        ... ))
+        >>> x = torch.randn(2, 1, 80, 100)
+        >>> lengths = torch.tensor([100, 80])
+        >>> out, out_len = conv(x, lengths)
+    """
     def __init__(self, sequential: nn.Sequential) -> None:
         super(MaskConv2d, self).__init__()
         self.sequential = sequential
@@ -20,10 +51,10 @@ class MaskConv2d(nn.Module):
 
             if output.is_cuda:
                 mask = mask.cuda()
-            
+
             seq_lengths = self._get_sequence_lengths(module, seq_lengths)
 
-            for  idx, length in enumerate(seq_lengths):
+            for idx, length in enumerate(seq_lengths):
                 lengths = length.item()
 
                 if (mask[idx].size(2) - lengths) > 0:
@@ -31,7 +62,7 @@ class MaskConv2d(nn.Module):
 
             output = output.masked_fill(mask, 0)
             inputs = output
-        
+
         return output, seq_lengths
 
     def _get_sequence_lengths(self, module: nn.Module, seq_lengths: Tensor) -> Tensor:
@@ -50,5 +81,5 @@ class MaskConv2d(nn.Module):
             seq_lengths = seq_lengths.int() + 1
         elif isinstance(module, nn.MaxPool2d):
             seq_lengths >>= 1
-        
+
         return seq_lengths.int()
