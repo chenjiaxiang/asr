@@ -34,7 +34,7 @@ class ASRCTCModel(ASRModel):
         self.encoder = None
         self.decoder = None
 
-    def set_beam_decoder(self, beam_size: int = 3):
+    def set_beam_decoder(self, beam_size: int = 3) -> None:
         """Setting beam search decoder"""
         from asr.search import BeamSearchCTC
 

@@ -16,7 +16,7 @@ class ASRLanguageModelBase(nn.Module):
         ...     def forward_step(self, inputs, input_lengths):
         ...         pass
     """
-    def __init__(self):
+    def __init__(self) -> None:
         super(ASRLanguageModelBase, self).__init__()
 
     def count_parameters(self) -> int:

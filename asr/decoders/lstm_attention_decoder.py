@@ -1,5 +1,5 @@
 import random
-from typing import Any, Optional, Tuple
+from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -209,7 +209,7 @@ class LSTMAttentionDecoder(ASRDecoder):
 
     def validate_args(
             self,
-            targets: Optional[Any] = None,
+            targets: Optional[Tensor] = None,
             encoder_outputs: Optional[Tensor] = None,
             teacher_forcing_ratio: float = 1.0,
     ) -> Tuple[Tensor, int, int]:
