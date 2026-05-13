@@ -51,6 +51,18 @@ class LibriSpeechConfigs(ASRDataclass):
     )
 
 @dataclass
+class TIMITConfigs(ASRDataclass):
+    """Configuration dataclass for the TIMIT corpus."""
+
+    dataset: str = field(
+        default="timit", metadata={"help": "Dataset name identifier."}
+    )
+    dataset_path: str = field(default=MISSING, metadata={"help": "Root directory of the TIMIT corpus."})
+    manifest_file_path: str = field(
+        default="timit_manifest.txt", metadata={"help": "Path of the manifest file."}
+    )
+
+@dataclass
 class AugmentConfigs(ASRDataclass):
     apply_spec_augment: bool = field(
         default=False, metadata={"help": "Flag indication whether to apply spec augment or not"}

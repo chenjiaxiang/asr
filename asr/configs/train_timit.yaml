@@ -1,0 +1,105 @@
+# @package _group_
+# TIMIT experiment configuration
+# Run with:
+#   python asr_cli/hydra_train.py --config-name train_timit
+
+defaults:
+  - audio: fbank
+  - augment: default
+  - dataset: timit
+  - criterion: cross_entropy
+  - lr_scheduler: warmup_reduce_lr_on_plateau
+  - model: conformer_lstm
+  - trainer: gpu
+  - tokenizer: timit_character
+
+# ── Dataset ────────────────────────────────────────────────────────────────
+dataset:
+  dataset_path: data/TIMIT          # root dir containing TRAIN/ and TEST/
+  manifest_file_path: data/timit_manifest.txt
+
+# ── Tokenizer ──────────────────────────────────────────────────────────────
+tokenizer:
+  vocab_path: data/timit_labels.csv
+  eos_token: "<eos>"
+
+# ── Audio features ─────────────────────────────────────────────────────────
+audio:
+  sample_rate: 16000
+  frame_length: 20.0                # ms
+  frame_shift: 10.0                 # ms
+  num_mels: 80
+  del_silence: false
+  apply_spec_augment: true
+  apply_noise_augment: false
+  apply_time_stretch_augment: false
+  apply_joining_augment: false
+
+# ── Augmentation ───────────────────────────────────────────────────────────
+# TIMIT utterances are short (~150-400 frames); use smaller masks to avoid
+# masking out entire phonemes.
+augment:
+  apply_spec_augment: true
+  freq_mask_para: 15                # 80 mel bins × ~19% max masking
+  freq_mask_num: 2
+  time_mask_num: 2                  # fewer masks for short utterances
+  apply_noise_augment: false
+  apply_joining_augment: false
+  apply_time_stretch_augment: false
+
+# ── Model: ConformerLSTM ───────────────────────────────────────────────────
+# Sizing rationale for TIMIT (~3300 training utterances):
+#   encoder_dim 256, 6 layers  →  ~16 M params total (vs ~100 M at default)
+#   Higher dropout (0.2) compensates for the small training set.
+model:
+  model_name: conformer_lstm
+  optimizer: adam
+
+  # Encoder
+  encoder_dim: 256                  # 256/4 heads = 64-dim per head
+  num_encoder_layers: 6             # shallow enough to avoid overfitting
+  num_attention_heads: 4            # must divide encoder_dim evenly
+  feed_forward_expansion_factor: 4
+  conv_expansion_factor: 2
+  conv_kernel_size: 15              # 150 ms context; fits short TIMIT utterances
+  half_step_residual: true
+  input_dropout_p: 0.2              # higher dropout for small dataset
+  feed_forward_dropout_p: 0.2
+  attention_dropout_p: 0.2
+  conv_dropout_p: 0.2
+
+  # Decoder (LSTM attention)
+  num_decoder_layers: 1             # single layer sufficient for char-level
+  decoder_attn_mechanism: loc       # location-aware works well on short seqs
+  decoder_dropout_p: 0.2
+  rnn_type: lstm
+  max_length: 64                    # TIMIT sentences ≤ ~70 chars
+  teacher_forcing_ratio: 1.0
+
+# ── Criterion ──────────────────────────────────────────────────────────────
+criterion:
+  criterion_name: cross_entropy
+
+# ── LR Scheduler ───────────────────────────────────────────────────────────
+# ~104 steps/epoch (3326 samples ÷ batch 32).
+# Warmup for ~5 epochs, then reduce on plateau.
+lr_scheduler:
+  scheduler_name: warmup_reduce_lr_on_plateau
+  peak_lr: 5.0e-4                   # higher peak for smaller model
+  init_lr: 1.0e-10
+  warmup_steps: 500                 # ≈ 5 epochs
+  lr_patience: 5                    # wait 5 stagnant epochs before reducing
+  lr_factor: 0.5
+
+# ── Trainer ────────────────────────────────────────────────────────────────
+trainer:
+  seed: 42
+  max_epochs: 200                   # small dataset needs more epochs
+  batch_size: 32
+  num_workers: 4
+  accumulate_grad_batches: 1
+  gradient_clip_val: 5.0
+  check_val_every_n_epoch: 1
+  sampler: smart
+  logger: tensorboard
+  save_checkpoint_n_steps: 200      # ≈ every 2 epochs

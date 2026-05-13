@@ -9,6 +9,7 @@ from .configurations import (
     GPUResumeTrainerConfigs,
     GPUTrainerConfigs,
     LibriSpeechConfigs,
+    TIMITConfigs,
 )
 
 ASR_TRAIN_CONFIGS = [
@@ -24,6 +25,7 @@ ASR_TRAIN_CONFIGS = [
 
 DATASET_DATACLASS_REGISTRY = {
     "librispeech": LibriSpeechConfigs,
+    "timit": TIMITConfigs,
 }
 
 TRAINER_DATACLASS_REGISTRY = {

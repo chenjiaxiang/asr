@@ -10,9 +10,9 @@ from asr.search import BeamSearchTransformerTransducer
 from asr.tokenizers.tokenizer import Tokenizer
 
 @register_model("tranformer_transducer", dataclass=TransformerTransducerConfig)
-class TransformerTranducerModel(ASRTransducerModel):
+class TransformerTransducerModel(ASRTransducerModel):
     def __init__(self, configs: DictConfig, tokenizer: Tokenizer) -> None:
-        super(TransformerTranducerModel, self).__init__(configs, tokenizer)
+        super(TransformerTransducerModel, self).__init__(configs, tokenizer)
 
         self.encoder = TransformerTransducerEncoder(
             input_size=self.configs.audio.num_mels,
